@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>codemap</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b0e14; color: #e6e6e6;
+    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; overflow: hidden; }
+  #graph { position: fixed; inset: 0; }
+  #labels { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 4; }
+  .lab { position: absolute; transform: translate(-50%, -50%); white-space: nowrap;
+    font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 600;
+    text-shadow: 0 0 3px #000, 0 0 4px #000; will-change: left, top; }
+  .panel { position: fixed; z-index: 10; background: rgba(16,20,28,0.92);
+    border: 1px solid #2a3140; border-radius: 8px; backdrop-filter: blur(6px); }
+  #hud { top: 12px; left: 12px; padding: 10px 12px; width: 270px; font-size: 13px; }
+  #hud h1 { font-size: 14px; margin: 0 0 6px; letter-spacing: .04em; }
+  #crumb { color: #8aa0c0; font-size: 12px; margin: 4px 0 8px; word-break: break-all; }
+  #search { width: 100%; padding: 5px 7px; margin-bottom: 8px; background: #0b0e14;
+    border: 1px solid #2a3140; border-radius: 5px; color: #e6e6e6; font-size: 12px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 6px; font-size: 12px; }
+  .toggles label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  button { background: #1c2433; color: #cfe0ff; border: 1px solid #2a3140; border-radius: 5px;
+    padding: 4px 8px; font-size: 12px; cursor: pointer; }
+  button:hover { background: #243049; }
+  #detail { bottom: 12px; left: 12px; width: 300px; max-height: 42vh; overflow: auto;
+    padding: 10px 12px; font-size: 12px; display: none; }
+  #detail h2 { font-size: 13px; margin: 0 0 2px; word-break: break-all; }
+  #detail .meta { color: #8aa0c0; margin-bottom: 8px; }
+  #detail ul { margin: 4px 0 10px; padding-left: 14px; }
+  #detail li { cursor: pointer; color: #cfe0ff; margin: 2px 0; word-break: break-all; }
+  #detail li:hover { text-decoration: underline; }
+  #detail .group { color: #9fb2cc; text-transform: uppercase; font-size: 10px; letter-spacing: .08em; }
+  #readme { top: 12px; right: 12px; width: 380px; max-height: 92vh; overflow: auto; padding: 0; }
+  #readme .bar { display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; border-bottom: 1px solid #2a3140; position: sticky; top: 0;
+    background: rgba(16,20,28,0.97); }
+  #readme .body { padding: 4px 14px 16px; font-size: 13px; line-height: 1.5; }
+  #readme.collapsed .body { display: none; }
+  #readme .body h1,#readme .body h2 { border-bottom: 1px solid #2a3140; padding-bottom: 3px; }
+  #readme .body pre { background: #0b0e14; padding: 8px; border-radius: 5px; overflow: auto; }
+  #readme .body code { background: #0b0e14; padding: 1px 4px; border-radius: 3px; }
+  #about { bottom: 12px; right: 12px; width: 300px; padding: 8px 12px; font-size: 11px;
+    color: #9fb2cc; }
+  #legend { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 11px; }
+  #starthere { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+  #starthere .group { width: 100%; }
+  .start { cursor: pointer; font-size: 11px; padding: 1px 6px; border-radius: 4px;
+    background: #1c2433; border: 1px solid #2a3140; color: #cfe0ff; }
+  .start:hover { background: #243049; }
+  kbd { background: #1c2433; border: 1px solid #2a3140; border-radius: 3px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="labels"></div>
+
+<div id="hud" class="panel">
+  <h1>codemap · <span id="root"></span></h1>
+  <div id="crumb">structure view — <kbd>WASD</kbd>/<kbd>QE</kbd> to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in</div>
+  <input id="search" placeholder="search module / class…" autocomplete="off" />
+  <div class="toggles" id="toggles"></div>
+  <div style="display:flex; gap:6px;">
+    <button id="reset">⟲ Reset view</button>
+    <button id="back">↑ Back</button>
+  </div>
+  <div id="legend"></div>
+  <div id="starthere"></div>
+</div>
+
+<div id="detail" class="panel"></div>
+
+<div id="readme" class="panel">
+  <div class="bar"><strong>README</strong><button id="readme-toggle">hide</button></div>
+  <div class="body" id="readme-body"></div>
+</div>
+
+<div id="about" class="panel">
+  Static-analysis map (intuition, not proof): dynamic dispatch via getattr/metaclasses
+  is invisible; <b>registers</b> edges recover the most important registry wiring.
+  Arrows point at the dependent — <b>arrow in</b> = imports from, <b>arrow out</b> = exported to.
+  Labels show on hover &amp; in the detail panel.
+</div>
+
+<!--{{VENDOR}}-->
+<script>
+const DATA = /*{{DATA}}*/ null;
+const READMEMD = /*{{README}}*/ "";
+
+// ---- README ----
+document.getElementById('readme-body').innerHTML = marked.parse(READMEMD || '');
+document.getElementById('root').textContent = DATA.root;
+const readmeEl = document.getElementById('readme');
+document.getElementById('readme-toggle').onclick = () => {
+  readmeEl.classList.toggle('collapsed');
+  document.getElementById('readme-toggle').textContent =
+    readmeEl.classList.contains('collapsed') ? 'show' : 'hide';
+};
+
+// ---- indices ----
+const nodeById = new Map(DATA.nodes.map(n => [n.id, n]));
+const NODE_COLORS = {
+  block: '#8892a6', block: '#8892a6', block: '#8892a6',
+  block: '#4cc9f0', block: '#8892a6', block: '#f78c6b',
+};
+const KIND_COLORS = { import: '#3a4a63', uses: '#e8923c', registers: '#4cc9f0' };
+
+function colorFor(n) {
+  if (n.role === 'base') return '#ffffff';            // ABCs: white
+  if (n.block) return NODE_COLORS[n.block] || '#9aa7bd';
+  if (n.kind === 'package') return '#4a5a78';         // structural: muted blue-grey
+  return '#7d8ba6';                                   // plain modules: lighter grey
+}
+function sizeFor(n) {
+  const base = n.kind === 'package' ? 9            // packages: large
+    : n.kind === 'module' ? 3.2                    // modules: medium
+    : (n.role === 'base' ? 2.6 : 1.6);             // classes small (base a touch larger)
+  return base * (1 + 1.6 * (n.score || 0));        // grow by centrality (core abstractions pop)
+}
+const DIM_NODE = '#161b26';   // near-background colour for de-emphasised nodes
+const DIM_LINK = '#1a2130';
+function shortName(n) {
+  return n.kind === 'class' ? n.id.split(':').pop() : n.id.split('.').pop();
+}
+
+// adjacency by kind
+const adj = { import: [], uses: [], registers: [] };
+for (const e of DATA.edges) adj[e.kind].push(e);
+function touching(id, kind) {
+  return adj[kind].filter(e => e.source === id || e.target === id);
+}
+
+// ---- state ----
+const enabled = { import: true, uses: true, registers: true };
+let showLabels = true;
+let showCycles = false;            // highlight import-cycle (SCC) members in red
+let focus = null;                  // null = nothing focused; else a node id
+const history = [];
+let highlightNodes = new Set();    // node ids kept bright when focused
+let highlightLinks = new Set();    // linkId()s kept bright when focused
+
+// Render provider -> consumer so the arrowhead points at the dependent:
+// arrow IN to a node = "imports from"; arrow OUT = "exported to".
+const ALL_LINKS = DATA.edges.map(e => ({ source: e.target, target: e.source, kind: e.kind }));
+const endId = x => (typeof x === 'object' ? x.id : x);
+const linkId = l => `${endId(l.source)}|${endId(l.target)}|${l.kind}`;
+
+// neighborhood of a focused node (itself + its relevant neighbors)
+function neighborhood(id) {
+  const n = nodeById.get(id);
+  const ids = new Set([id]);
+  if (n.kind === 'package') {
+    for (const m of DATA.nodes)
+      if ((m.kind === 'module' || m.kind === 'package') &&
+          (m.id === id || m.id.startsWith(id + '.'))) ids.add(m.id);
+  } else if (n.kind === 'module') {
+    // importers/imported AND classes that use it (cross-package "where used")
+    for (const k of ['import', 'uses', 'registers'])
+      for (const e of touching(id, k)) { ids.add(e.source); ids.add(e.target); }
+    for (const c of DATA.nodes) if (c.kind === 'class' && c.module === id) ids.add(c.id);
+  } else { // class
+    ids.add(n.module);
+    for (const k of ['uses', 'registers'])
+      for (const e of touching(id, k)) { ids.add(e.source); ids.add(e.target); }
+  }
+  return ids;
+}
+
+function computeHighlight() {
+  highlightNodes = new Set();
+  highlightLinks = new Set();
+  if (!focus) return;
+  highlightNodes = neighborhood(focus);
+  for (const l of ALL_LINKS)
+    if ((endId(l.source) === focus || endId(l.target) === focus) && enabled[l.kind])
+      highlightLinks.add(linkId(l));
+}
+
+// Dim de-emphasised nodes/links instead of removing them (keeps spatial memory).
+const CYCLE_COLOR = '#ff5252';
+function nodeColorAcc(n) {
+  if (showCycles) return (n.cycle != null) ? CYCLE_COLOR : DIM_NODE;
+  return (focus && !highlightNodes.has(n.id)) ? DIM_NODE : colorFor(n);
+}
+function linkColorAcc(l) {
+  if (showCycles) {
+    const s = nodeById.get(endId(l.source)), t = nodeById.get(endId(l.target));
+    return (l.kind === 'import' && s && t && s.cycle != null && s.cycle === t.cycle)
+      ? CYCLE_COLOR : DIM_LINK;
+  }
+  return (focus && !highlightLinks.has(linkId(l))) ? DIM_LINK : KIND_COLORS[l.kind];
+}
+function linkWidthAcc(l) {
+  if (focus && highlightLinks.has(linkId(l))) return 2.4;
+  return l.kind === 'import' ? 0.5 : 1.2;
+}
+
+// Persistent labels as an HTML overlay (no extra three dependency): one <div>
+// per node, repositioned every frame from graph2ScreenCoords (see updateLabels).
+const labelLayer = document.getElementById('labels');
+const labelEls = new Map();
+function buildLabels() {
+  for (const n of DATA.nodes) {
+    const d = document.createElement('div');
+    d.className = 'lab';
+    const mark = n.entry ? '▶ ' : n.public ? '◦ ' : '';   // entry point / public API
+    d.textContent = mark + shortName(n);
+    d.style.color = colorFor(n);
+    d.style.fontSize = (n.kind === 'package' ? 15 : n.kind === 'module' ? 12 : 10) + 'px';
+    labelLayer.appendChild(d);
+    labelEls.set(n.id, d);
+  }
+}
+function updateLabels() {
+  const w = window.innerWidth, h = window.innerHeight;
+  const graphNodes = Graph.graphData().nodes;
+  for (const n of graphNodes) {
+    const el = labelEls.get(n.id);
+    if (!el) continue;
+    // class labels only show when something is focused (keeps full view uncluttered)
+    let show = showLabels && (n.kind !== 'class' || !!focus);
+    if (show) {
+      const c = Graph.graph2ScreenCoords(n.x || 0, n.y || 0, n.z || 0);
+      if (c && c.x >= -60 && c.x <= w + 60 && c.y >= -20 && c.y <= h + 20) {
+        el.style.display = 'block';
+        el.style.left = c.x + 'px';
+        el.style.top = c.y + 'px';
+        el.style.opacity = (focus && !highlightNodes.has(n.id)) ? '0.12' : '1';
+      } else { el.style.display = 'none'; }
+    } else { el.style.display = 'none'; }
+  }
+}
+
+// ---- 3d-force-graph (full graph rendered once; focus only dims/highlights) ----
+const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('graph'))
+  .backgroundColor('#0b0e14')
+  .nodeRelSize(4)
+  .nodeVal(sizeFor)
+  .nodeColor(nodeColorAcc)
+  .nodeOpacity(0.92)
+  .nodeLabel(n => `${shortName(n)} · ${n.kind}${n.block ? ' · ' + n.block : ''}`)
+  .linkColor(linkColorAcc)
+  .linkVisibility(l => enabled[l.kind])
+  .linkWidth(linkWidthAcc)
+  .linkOpacity(0.6)
+  .linkDirectionalArrowLength(l => (l.kind === 'import' ? 2.5 : 3.2))
+  .linkDirectionalArrowRelPos(1)
+  .linkDirectionalArrowColor(linkColorAcc)
+  .enableNodeDrag(false)            // drags should orbit, not move nodes
+  .onNodeClick(node => drillTo(node.id))
+  .graphData({ nodes: DATA.nodes.map(n => ({ ...n })), links: ALL_LINKS });
+window.Graph = Graph;        // exposed for debugging / external drill-in
+
+// Re-apply visual accessors so a state change repaints without re-running layout.
+function repaint() {
+  Graph.nodeColor(nodeColorAcc)
+       .linkColor(linkColorAcc)
+       .linkVisibility(l => enabled[l.kind])
+       .linkWidth(linkWidthAcc)
+       .linkDirectionalArrowColor(linkColorAcc);
+}
+
+function flyToNode(id) {
+  const n = Graph.graphData().nodes.find(x => x.id === id);
+  if (!n) return;
+  const gap = 90;
+  const len = Math.hypot(n.x || 0, n.y || 0, n.z || 0) || 1;
+  const k = (len + gap) / len;
+  Graph.cameraPosition({ x: (n.x || 0) * k, y: (n.y || 0) * k, z: (n.z || 0) * k }, n, 800);
+}
+
+function applyFocus() { computeHighlight(); repaint(); updateCrumb(); updateDetail(); }
+
+function drillTo(id) {
+  if (focus !== id) { history.push(focus); focus = id; }
+  applyFocus();
+  flyToNode(id);
+}
+function back() {
+  if (!history.length) return;
+  focus = history.pop();
+  applyFocus();
+  if (focus) flyToNode(focus); else Graph.zoomToFit(600, 50);
+}
+function reset() { history.length = 0; focus = null; applyFocus(); Graph.zoomToFit(600, 50); }
+
+document.getElementById('back').onclick = back;
+document.getElementById('reset').onclick = reset;
+
+function updateCrumb() {
+  const c = document.getElementById('crumb');
+  if (!focus) { c.textContent =
+    'structure view — WASD/QE to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in'; return; }
+  const n = nodeById.get(focus);
+  c.innerHTML = `<b>${n.kind}</b> · ${focus}`;
+}
+
+// ---- detail panel ----
+function listFor(focusId) {
+  const n = nodeById.get(focusId);
+  const groups = [];
+  const link = id => `<li data-id="${id}">${shortName(nodeById.get(id) || { id })} `
+    + `<span class="group">${(nodeById.get(id) || {}).kind || ''}</span></li>`;
+  if (n.kind === 'module') {
+    const imp = touching(focusId, 'import');
+    groups.push(['imports', imp.filter(e => e.source === focusId).map(e => e.target)]);
+    groups.push(['imported by', imp.filter(e => e.target === focusId).map(e => e.source)]);
+    groups.push(['classes here',
+      DATA.nodes.filter(c => c.kind === 'class' && c.module === focusId).map(c => c.id)]);
+  } else if (n.kind === 'class') {
+    groups.push(['uses', touching(focusId, 'uses').filter(e => e.source === focusId).map(e => e.target)]);
+    groups.push(['registers',
+      touching(focusId, 'registers').filter(e => e.source === focusId).map(e => e.target)]);
+    groups.push(['implementations',
+      touching(focusId, 'registers').filter(e => e.target === focusId).map(e => e.source)]);
+  } else {
+    groups.push(['contains',
+      DATA.nodes.filter(m => (m.kind === 'module') && m.id.startsWith(focusId + '.')).map(m => m.id)]);
+  }
+  return groups.filter(([, arr]) => arr.length)
+    .map(([t, arr]) => `<div class="group">${t}</div><ul>${[...new Set(arr)].map(link).join('')}</ul>`)
+    .join('');
+}
+
+function updateDetail() {
+  const d = document.getElementById('detail');
+  if (!focus) { d.style.display = 'none'; return; }
+  const n = nodeById.get(focus);
+  d.style.display = 'block';
+  d.innerHTML = `<h2>${shortName(n)}</h2>`
+    + `<div class="meta">${n.kind}${n.block ? ' · ' + n.block : ''}${n.role ? ' · ' + n.role : ''}`
+    + `<br>${focus}</div>` + listFor(focus);
+  d.querySelectorAll('li').forEach(li =>
+    li.onclick = () => { const id = li.getAttribute('data-id'); if (nodeById.has(id)) drillTo(id); });
+}
+
+// ---- toggles + legend ----
+const tg = document.getElementById('toggles');
+for (const k of ['import', 'uses', 'registers']) {
+  const id = 'tg-' + k;
+  tg.insertAdjacentHTML('beforeend',
+    `<label><input type="checkbox" id="${id}" ${enabled[k] ? 'checked' : ''}>`
+    + `<span class="sw" style="background:${KIND_COLORS[k]}"></span>${k}</label>`);
+}
+tg.insertAdjacentHTML('beforeend',
+  `<label><input type="checkbox" id="tg-labels" checked>labels</label>`
+  + `<label><input type="checkbox" id="tg-cycles"><span class="sw" style="background:${CYCLE_COLOR}"></span>cycles</label>`);
+for (const k of ['import', 'uses', 'registers'])
+  document.getElementById('tg-' + k).onchange = e => {
+    enabled[k] = e.target.checked; computeHighlight(); repaint();
+  };
+document.getElementById('tg-labels').onchange = e => { showLabels = e.target.checked; };
+document.getElementById('tg-cycles').onchange = e => { showCycles = e.target.checked; repaint(); };
+
+const legend = document.getElementById('legend');
+legend.innerHTML = Object.entries(NODE_COLORS)
+  .map(([b, c]) => `<span><span class="sw" style="background:${c}"></span> ${b}</span>`).join('')
+  + `<span><span class="sw" style="background:#fff"></span> class</span>`
+  + `<span>▶ entry · ◦ public · ●size = centrality</span>`;
+
+// "Start here" — entry points (▶) and public API (◦), clickable to drill in.
+const startEl = document.getElementById('starthere');
+const starts = DATA.nodes.filter(n => n.entry || n.public)
+  .sort((a, b) => (b.score || 0) - (a.score || 0));
+if (starts.length) {
+  startEl.innerHTML = '<div class="group">start here</div>'
+    + starts.map(n => `<span class="start" data-id="${n.id}">`
+      + `${n.entry ? '▶' : '◦'} ${shortName(n)}</span>`).join('');
+  startEl.querySelectorAll('.start').forEach(el =>
+    el.onclick = () => drillTo(el.getAttribute('data-id')));
+}
+
+// ---- search ----
+document.getElementById('search').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const q = e.target.value.trim().toLowerCase();
+  if (!q) return;
+  const hit = DATA.nodes.find(n => n.id.toLowerCase().includes(q));
+  if (hit) drillTo(hit.id);
+});
+
+// ---- WASD/QE keyboard fly, layered on top of orbit controls ----
+const keyState = {};
+const searchEl = document.getElementById('search');
+window.addEventListener('keydown', e => {
+  if (document.activeElement === searchEl) return;
+  const k = e.key.toLowerCase();
+  if ('wasdqe'.includes(k)) keyState[k] = true;
+});
+window.addEventListener('keyup', e => { keyState[e.key.toLowerCase()] = false; });
+
+const STEP = 5;
+function flyTick() {
+  const cam = Graph.camera();
+  const ctrls = Graph.controls();
+  if (cam && ctrls && ctrls.target) {
+    const fwd = ctrls.target.clone().sub(cam.position).normalize();
+    const right = fwd.clone().cross(cam.up).normalize();
+    const up = cam.up.clone().normalize();
+    const move = fwd.clone().multiplyScalar(0);  // zero vector of the right type
+    if (keyState.w) move.add(fwd);
+    if (keyState.s) move.sub(fwd);
+    if (keyState.d) move.add(right);
+    if (keyState.a) move.sub(right);
+    if (keyState.e) move.add(up);
+    if (keyState.q) move.sub(up);
+    if (move.x || move.y || move.z) {
+      move.normalize().multiplyScalar(STEP);
+      cam.position.add(move);
+      ctrls.target.add(move);     // move camera and target together => fly/pan
+      if (ctrls.update) ctrls.update();
+    }
+  }
+  updateLabels();                 // reposition HTML labels every frame
+  requestAnimationFrame(flyTick);
+}
+
+buildLabels();
+updateCrumb();
+setTimeout(() => { if (!focus) Graph.zoomToFit(700, 60); }, 1500);
+flyTick();
+</script>
+</body>
+</html>
