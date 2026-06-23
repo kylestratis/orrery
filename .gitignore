@@ -10,3 +10,6 @@ codemap.html
 
 # session handoff (local only)
 HANDOFF.md
+
+# Deciduous database (local)
+.deciduous/
