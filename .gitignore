@@ -1,0 +1,9 @@
+node_modules/
+# build artifacts
+build/
+orrery
+*.codemap.json
+codemap.json
+codemap.html
+# bun
+.bun/
