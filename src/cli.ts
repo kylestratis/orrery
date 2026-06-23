@@ -46,7 +46,7 @@ function parseArgs(argv: string[]) {
   return { opts, positional };
 }
 
-function build(argv: string[]): number {
+async function build(argv: string[]): Promise<number> {
   const { opts, positional } = parseArgs(argv);
   const repoArg = positional[0];
   if (!repoArg) {
@@ -59,7 +59,7 @@ function build(argv: string[]): number {
     return 1;
   }
 
-  const map: CodeMap = extract(repo);
+  const map: CodeMap = await extract(repo);
   for (const file of opts.augment) {
     if (!existsSync(file)) {
       console.error(`error: --augment file not found: ${file}`);
@@ -82,7 +82,7 @@ function build(argv: string[]): number {
   return 0;
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
   if (!cmd || cmd === "-h" || cmd === "--help") {
@@ -98,4 +98,4 @@ function main(): number {
   return 1;
 }
 
-process.exit(main());
+process.exit(await main());
