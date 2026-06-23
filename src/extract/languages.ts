@@ -1,32 +1,30 @@
 /**
- * Language registry. v0 uses this only to decide which files are "source" (and
- * to tag a node's language). The tree-sitter `LanguagePlugin` interface below is
- * the boundary for the next layer (per-language import/symbol queries).
+ * Language registry: file-extension → language tag, dirs to skip, and the
+ * tree-sitter plugin (if any) for a tag. Languages without a plugin still get
+ * structure nodes (folders/files) — they just lack import/class edges for now.
  */
 
-/** file extension (no dot) -> language tag */
+import { PLUGINS, type Plugin } from "./plugins.ts";
+
+/** file extension (no dot) -> language tag (also the plugin key). */
 export const EXT_LANG: Record<string, string> = {
-  ts: "typescript", tsx: "typescript", mts: "typescript", cts: "typescript",
+  ts: "typescript", mts: "typescript", cts: "typescript",
+  tsx: "tsx",
   js: "javascript", jsx: "javascript", mjs: "javascript", cjs: "javascript",
   py: "python", pyi: "python",
-  rs: "rust",
-  go: "go",
-  java: "java",
-  kt: "kotlin", kts: "kotlin",
-  rb: "ruby",
-  php: "php",
-  cs: "csharp",
-  swift: "swift",
-  scala: "scala",
-  c: "c", h: "c",
-  cc: "cpp", cpp: "cpp", cxx: "cpp", hpp: "cpp", hh: "cpp",
-  m: "objc", mm: "objc",
-  lua: "lua",
-  ex: "elixir", exs: "elixir",
+  // structure-only for now (no plugin yet):
+  rs: "rust", go: "go", java: "java", kt: "kotlin", kts: "kotlin",
+  rb: "ruby", php: "php", cs: "csharp", swift: "swift", scala: "scala",
+  c: "c", h: "c", cc: "cpp", cpp: "cpp", cxx: "cpp", hpp: "cpp", hh: "cpp",
+  lua: "lua", ex: "elixir", exs: "elixir",
 };
 
 export function langForExt(ext: string): string | undefined {
   return EXT_LANG[ext.toLowerCase()];
+}
+
+export function pluginFor(lang: string): Plugin | undefined {
+  return PLUGINS[lang];
 }
 
 /** Directory names never worth descending into. */
@@ -36,19 +34,3 @@ export const IGNORE_DIRS = new Set([
   ".bun", ".idea", ".vscode", "coverage", "htmlcov", ".mypy_cache", ".pytest_cache",
   ".ruff_cache", "site", ".deciduous", ".beads",
 ]);
-
-/**
- * Tree-sitter extraction boundary (next layer). Each plugin maps a language to
- * its grammar + queries that yield definition nodes and import/uses edges. Kept
- * here as the contract so adding a language never touches the core.
- */
-export interface LanguagePlugin {
-  lang: string;
-  /** path/specifier of the tree-sitter wasm grammar. */
-  grammarWasm: string;
-  /** tree-sitter query (S-expression) capturing @import / @class / @function / @ref. */
-  query: string;
-}
-
-/** Registered tree-sitter plugins (empty in v0; populated in the extraction layer). */
-export const PLUGINS = new Map<string, LanguagePlugin>();

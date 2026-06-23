@@ -7,3 +7,6 @@ codemap.json
 codemap.html
 # bun
 .bun/
+
+# session handoff (local only)
+HANDOFF.md
