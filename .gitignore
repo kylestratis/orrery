@@ -13,3 +13,8 @@ HANDOFF.md
 
 # Deciduous database (local)
 .deciduous/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
