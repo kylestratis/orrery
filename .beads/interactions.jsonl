@@ -1,3 +1,6 @@
 {"id":"int-430e3856","kind":"field_change","created_at":"2026-06-23T20:33:32.30387Z","actor":"Kyle Stratis","issue_id":"orrery-z5n","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-4d9ae0bd","kind":"field_change","created_at":"2026-06-23T20:33:34.331904Z","actor":"Kyle Stratis","issue_id":"orrery-z5n","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"migration probe cleanup"}}
 {"id":"int-07c9e68f","kind":"field_change","created_at":"2026-06-24T03:49:43.738495Z","actor":"Kyle Stratis","issue_id":"orrery-dom","extra":{"field":"priority","new_value":"2","old_value":"4"}}
+{"id":"int-b0b62a9d","kind":"field_change","created_at":"2026-06-24T17:05:31.939313Z","actor":"Kyle Stratis","issue_id":"orrery-0cp","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-c50f2988","kind":"field_change","created_at":"2026-06-24T17:08:24.721718Z","actor":"Kyle Stratis","issue_id":"orrery-0cp","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Phase 1 complete: contract scaffolding committed (7b410eb), code-review APPROVED 0 issues"}}
+{"id":"int-7cc6f1d3","kind":"field_change","created_at":"2026-06-24T17:08:43.637525Z","actor":"Kyle Stratis","issue_id":"orrery-31p","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
