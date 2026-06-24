@@ -57,3 +57,17 @@ test("uses edges (python): exclusions and dedup", async () => {
   const list = map.edges.filter((e) => e.kind === "uses").map((e) => `${e.source}->${e.target}`);
   expect(list.length).toBe(new Set(list).size);
 });
+
+test("uses edges (typescript): class->class extends, alias, class->module call", async () => {
+  const map = await extract(REPO);
+  const u = usesEdges(map);
+  expect(u.has("repo.web.child:Child->repo.web.base:Base")).toBe(true); // extends imported (AC2.1)
+  expect(u.has("repo.web.aliased:Aliased->repo.web.base:Base")).toBe(true); // alias (AC1.2)
+  expect(u.has("repo.web.bar:Bar->repo.web.foo")).toBe(true); // calls imported fn -> module (AC2.2/AC2.4)
+});
+
+test("uses edges (javascript): class->class extends imported base", async () => {
+  const map = await extract(REPO);
+  const u = usesEdges(map);
+  expect(u.has("repo.web.circle:Circle->repo.web.shape:Shape")).toBe(true); // JS extends imported (AC2.1)
+});
