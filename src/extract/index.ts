@@ -10,6 +10,7 @@ import type { CodeEdge, CodeMap, CodeNode } from "../schema.ts";
 import { IGNORE_DIRS, langForExt, pluginFor } from "./languages.ts";
 import { stripQuotes } from "./plugins.ts";
 import { parse } from "./treesitter.ts";
+import type Parser from "web-tree-sitter";
 
 interface SourceFile {
   id: string;
@@ -176,7 +177,7 @@ export async function extract(repoPath: string): Promise<CodeMap> {
       }
     }
     // imports (matches() groups each import's captures together)
-    let symMatches;
+    let symMatches: Parser.QueryMatch[];
     try {
       symMatches = parsed.lang.query(plugin.uses.symbolQuery).matches(parsed.root);
     } catch {
@@ -197,7 +198,7 @@ export async function extract(repoPath: string): Promise<CodeMap> {
     }
 
     // 2. Scope references to their enclosing class.
-    let refCaps;
+    let refCaps: Parser.QueryCapture[];
     try {
       refCaps = parsed.lang.query(plugin.uses.referenceQuery).captures(parsed.root);
     } catch {
