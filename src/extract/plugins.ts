@@ -153,6 +153,17 @@ function jsResolve(spec: string, ctx: ResolveCtx): string | null {
   return null;
 }
 
+/** Resolve a JS/TS import binding to a node id: prefer the class, then the module.
+ *  For `import { Name } from "./mod"`, `name` is the imported leaf. */
+function jsResolveSymbol(spec: string, name: string | null, ctx: ResolveCtx): string | null {
+  const mod = jsResolve(spec, ctx); // module id, or null for bare/external
+  if (mod && name) {
+    const classId = `${mod}:${name}`;
+    if (ctx.classIds.has(classId)) return classId;
+  }
+  return mod;
+}
+
 const TS_QUERY = `
   (import_statement source: (string) @imp.src)
   (export_statement source: (string) @imp.src)
@@ -160,8 +171,58 @@ const TS_QUERY = `
   (abstract_class_declaration name: (type_identifier) @def.class)
 `;
 
-const typescript: Plugin = { grammar: "typescript", query: TS_QUERY, resolveImport: jsResolve };
-const tsx: Plugin = { grammar: "tsx", query: TS_QUERY, resolveImport: jsResolve };
+const TS_SYMBOL_QUERY = `
+  ; import { Orig as Local } from "./mod"   (aliased named import)
+  (import_statement
+    (import_clause (named_imports
+      (import_specifier name: (identifier) @sym.name alias: (identifier) @sym.local)))
+    source: (string) @sym.src)
+  ; import { Name } from "./mod"            (no alias: bind the name as BOTH)
+  (import_statement
+    (import_clause (named_imports
+      (import_specifier !alias name: (identifier) @sym.name @sym.local)))
+    source: (string) @sym.src)
+  ; import Local from "./mod"               (default import)
+  (import_statement
+    (import_clause (identifier) @sym.local)
+    source: (string) @sym.src)
+  ; import * as ns from "./mod"             (namespace import)
+  (import_statement
+    (import_clause (namespace_import (identifier) @sym.local))
+    source: (string) @sym.src)
+`;
+
+const TS_REFERENCE_QUERY = `
+  ; class names (for enclosing-class scoping)
+  (class_declaration name: (type_identifier) @def.class)
+  (abstract_class_declaration name: (type_identifier) @def.class)
+  ; heritage: extends / implements
+  (extends_clause (identifier) @ref)
+  (extends_clause (member_expression object: (identifier) @ref))
+  (implements_clause (type_identifier) @ref)
+  ; member-expression roots (property_identifier is a distinct node, so not captured)
+  (member_expression object: (identifier) @ref)
+  ; value identifiers and type references
+  (identifier) @ref
+  (type_identifier) @ref
+`;
+
+const tsUses: UsesCapability = {
+  symbolQuery: TS_SYMBOL_QUERY,
+  referenceQuery: TS_REFERENCE_QUERY,
+  resolveSymbol: jsResolveSymbol,
+};
+
+const typescript: Plugin = { grammar: "typescript", query: TS_QUERY, resolveImport: jsResolve, uses: tsUses };
+const tsx: Plugin = { grammar: "tsx", query: TS_QUERY, resolveImport: jsResolve, uses: tsUses };
+
+const JS_REFERENCE_QUERY = `
+  (class_declaration name: (identifier) @def.class)
+  (class_heritage (identifier) @ref)
+  (class_heritage (member_expression object: (identifier) @ref))
+  (member_expression object: (identifier) @ref)
+  (identifier) @ref
+`;
 
 const javascript: Plugin = {
   grammar: "javascript",
@@ -171,6 +232,11 @@ const javascript: Plugin = {
     (class_declaration name: (identifier) @def.class)
   `,
   resolveImport: jsResolve,
+  uses: {
+    symbolQuery: TS_SYMBOL_QUERY,
+    referenceQuery: JS_REFERENCE_QUERY,
+    resolveSymbol: jsResolveSymbol,
+  },
 };
 
 /** lang tag (see EXT_LANG) -> plugin. */
