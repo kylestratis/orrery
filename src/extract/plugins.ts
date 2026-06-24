@@ -17,12 +17,43 @@ export interface ResolveCtx {
   importerPath: string;
   ids: Set<string>;
   pathToId: Map<string, string>;
+  /** All intra-repo class node ids (e.g. "repo.pkg.base:Base"); lets a
+   *  resolver prefer a class over its module. Populated in extract() pass 1. */
+  classIds: Set<string>;
+}
+
+/**
+ * Optional per-language `uses`-edge extraction. The orchestrator owns all the
+ * generic logic; a plugin only supplies two tree-sitter queries plus a thin
+ * resolver. Capture-name vocabulary (the orchestrator bins captures by name):
+ *
+ *   symbolQuery captures (grouped per import via Query.matches):
+ *     @sym.local  the bound local name (alias if aliased)
+ *     @sym.src    the module / dotted-path / string specifier
+ *     @sym.name   the imported leaf name, for `from`-style imports (optional)
+ *
+ *   referenceQuery captures (flat, via Query.captures):
+ *     @def.class  a class name node — its .parent spans the class body, used to
+ *                 scope references to their enclosing class
+ *     @ref        a candidate referenced identifier (attribute-chain root,
+ *                 heritage/base type, or a load identifier)
+ *     @skip       identifier positions to subtract from @ref by source position
+ *                 (e.g. an attribute's property name in `a.b.c`)
+ */
+export interface UsesCapability {
+  symbolQuery: string;
+  referenceQuery: string;
+  /** Map an import binding to an intra-repo node id, class-preferred with module
+   *  fallback. `name` is the imported leaf for `from`-style imports (else null). */
+  resolveSymbol(spec: string, name: string | null, ctx: ResolveCtx): string | null;
 }
 
 export interface Plugin {
   grammar: string;
   query: string;
   resolveImport(spec: string, ctx: ResolveCtx): string | null;
+  /** Optional `uses`-edge extraction. Absent = language emits no uses edges. */
+  uses?: UsesCapability;
 }
 
 // --- Python ---------------------------------------------------------------

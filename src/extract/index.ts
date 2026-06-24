@@ -82,6 +82,7 @@ export async function extract(repoPath: string): Promise<CodeMap> {
   const edges: CodeEdge[] = [];
   const edgeSeen = new Set<string>();
   const classSeen = new Set<string>();
+  const classIds = new Set<string>(); // all class node ids; consumed by uses extraction (Phase 2)
 
   for (const file of sources) {
     const plugin = pluginFor(file.lang);
@@ -104,7 +105,7 @@ export async function extract(repoPath: string): Promise<CodeMap> {
     } catch {
       continue;
     }
-    const ctx = { importerId: file.id, importerPath: file.path, ids, pathToId };
+    const ctx = { importerId: file.id, importerPath: file.path, ids, pathToId, classIds };
     for (const cap of captures) {
       if (cap.name === "def.class") {
         const cid = `${file.id}:${cap.node.text}`;
