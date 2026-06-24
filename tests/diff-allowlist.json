@@ -1,0 +1,5 @@
+{
+  "comment": "Accepted uses-edge differences between orrery and the reference Python prototype. Each entry MUST state a cause. 'onlyOrrery' = edges orrery emits that the prototype does not; 'onlyPrototype' = the reverse. Edge form: 'source->target'.",
+  "onlyOrrery": [],
+  "onlyPrototype": []
+}
