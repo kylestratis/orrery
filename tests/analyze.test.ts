@@ -35,3 +35,35 @@ test("augment annotates score and cycle", () => {
   expect(byId["x.a"]!.cycle).toBeDefined();
   expect(byId["x.b"]!.cycle).toBe(byId["x.a"]!.cycle);
 });
+
+test("uses edges feed PageRank centrality (AC6.1)", () => {
+  // 'lib:Helper' is depended on ONLY via a uses edge; it must still get a score.
+  const map: CodeMap = {
+    root: "repo",
+    nodes: [
+      { id: "app:App", kind: "class" },
+      { id: "lib:Helper", kind: "class" },
+    ],
+    edges: [{ source: "app:App", target: "lib:Helper", kind: "uses" }],
+  };
+  augment(map);
+  const helper = map.nodes.find((n) => n.id === "lib:Helper")!;
+  expect(helper.score).toBeGreaterThan(0);
+});
+
+test("uses edges do not create cycle annotations (AC6.2)", () => {
+  // A mutual uses relationship would be a cycle IF uses fed SCC — it must not.
+  const map: CodeMap = {
+    root: "repo",
+    nodes: [
+      { id: "a:A", kind: "class" },
+      { id: "b:B", kind: "class" },
+    ],
+    edges: [
+      { source: "a:A", target: "b:B", kind: "uses" },
+      { source: "b:B", target: "a:A", kind: "uses" },
+    ],
+  };
+  augment(map);
+  expect(map.nodes.every((n) => n.cycle === undefined)).toBe(true);
+});
