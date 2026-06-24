@@ -78,6 +78,46 @@ function pyResolve(spec: string, ctx: ResolveCtx): string | null {
   return null;
 }
 
+/** Resolve an imported binding to a node id: prefer the class, then a submodule,
+ *  then the module. Mirrors the prototype's class → submodule → module order. */
+function pyResolveSymbol(spec: string, name: string | null, ctx: ResolveCtx): string | null {
+  const mod = pyResolve(spec, ctx); // module/package id, or null for external
+  if (name) {
+    if (mod) {
+      const classId = `${mod}:${name}`;
+      if (ctx.classIds.has(classId)) return classId; // from MOD import Class
+    }
+    // from . import submodule  /  from pkg import submodule
+    const joined = spec.endsWith(".") ? `${spec}${name}` : `${spec}.${name}`;
+    const sub = pyResolve(joined, ctx);
+    if (sub) return sub;
+  }
+  return mod; // module fallback (or null)
+}
+
+const PY_SYMBOL_QUERY = `
+  ; import a.b.c            -> local = first segment, src = full dotted path
+  (import_statement (dotted_name . (identifier) @sym.local) @sym.src)
+  ; import a.b.c as x       -> local = alias
+  (import_statement (aliased_import name: (dotted_name) @sym.src alias: (identifier) @sym.local))
+  ; from .mod import Name [as Local]
+  (import_from_statement
+    module_name: (_) @sym.src
+    name: (dotted_name (identifier) @sym.name @sym.local))
+  (import_from_statement
+    module_name: (_) @sym.src
+    name: (aliased_import name: (dotted_name (identifier) @sym.name) alias: (identifier) @sym.local))
+`;
+
+const PY_REFERENCE_QUERY = `
+  ; class names (for enclosing-class scoping)
+  (class_definition name: (identifier) @def.class)
+  ; attribute property names are NOT references (the chain root is) -> skip them
+  (attribute attribute: (identifier) @skip)
+  ; every load identifier is a candidate; the symbol table is the real filter
+  (identifier) @ref
+`;
+
 const python: Plugin = {
   grammar: "python",
   query: `
@@ -87,6 +127,11 @@ const python: Plugin = {
     (class_definition name: (identifier) @def.class)
   `,
   resolveImport: pyResolve,
+  uses: {
+    symbolQuery: PY_SYMBOL_QUERY,
+    referenceQuery: PY_REFERENCE_QUERY,
+    resolveSymbol: pyResolveSymbol,
+  },
 };
 
 // --- TypeScript / JavaScript ----------------------------------------------
