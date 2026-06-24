@@ -37,7 +37,7 @@ test("augment annotates score and cycle", () => {
 });
 
 test("uses edges feed PageRank centrality (AC6.1)", () => {
-  // 'lib:Helper' is depended on ONLY via a uses edge; it must still get a score.
+  // 'lib:Helper' is depended on ONLY via a uses edge; it must outrank the dependent 'app:App'.
   const map: CodeMap = {
     root: "repo",
     nodes: [
@@ -48,7 +48,9 @@ test("uses edges feed PageRank centrality (AC6.1)", () => {
   };
   augment(map);
   const helper = map.nodes.find((n) => n.id === "lib:Helper")!;
-  expect(helper.score).toBeGreaterThan(0);
+  const app = map.nodes.find((n) => n.id === "app:App")!;
+  // A node depended on via uses edge should have higher centrality than the dependent
+  expect(helper.score).toBeGreaterThan(app.score!);
 });
 
 test("uses edges do not create cycle annotations (AC6.2)", () => {
