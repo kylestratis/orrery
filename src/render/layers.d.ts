@@ -90,7 +90,7 @@ export interface Link {
 export function nearestVisibleAncestor(
   nodeId: string,
   nodesById: Map<string, Node>,
-  expanded: Set<any>
+  expanded: Set<string>
 ): string | null;
 
 /**
@@ -119,7 +119,7 @@ export function nearestVisibleAncestor(
 export function buildDisplayGraph(
   nodes: Node[],
   edges: Edge[],
-  expanded: Set<any>
+  expanded: Set<string>
 ): {
   nodes: Node[];
   links: Link[];

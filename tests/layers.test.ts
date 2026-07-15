@@ -88,7 +88,7 @@ test("AC1.4: expanding empty module raises no error", () => {
 });
 
 test("AC1.5: packages and modules always present", () => {
-  const states = [new Set(), new Set(["app.a"]), ALL_MODULES];
+  const states = [new Set<string>(), new Set(["app.a"]), ALL_MODULES];
   for (const expanded of states) {
     const g = buildDisplayGraph(NODES, EDGES, expanded);
     const ids = nodeIds(g);
@@ -196,7 +196,7 @@ test("AC4.2: unknown target dropped", () => {
 });
 
 test("AC4.2: unknown target dropped (all expansion states)", () => {
-  const states = [new Set(), new Set(["app.a"]), ALL_MODULES];
+  const states = [new Set<string>(), new Set(["app.a"]), ALL_MODULES];
   for (const expanded of states) {
     const g = buildDisplayGraph(NODES, EDGES, expanded);
     const ghostLinks = g.links.filter(
