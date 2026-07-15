@@ -13,6 +13,7 @@ import type { CodeMap } from "../schema.ts";
 const HERE = import.meta.dir; // src/render
 const VENDOR = join(HERE, "..", "..", "vendor");
 const TEMPLATE = join(HERE, "template.html");
+const LAYERS = join(HERE, "layers.js");
 const VENDOR_FILES = ["3d-force-graph.min.js", "marked.min.js"];
 
 /** Escape an embedded JSON/JS string so it cannot terminate the <script>. */
@@ -35,6 +36,7 @@ export function render(map: CodeMap, opts: RenderOptions): string {
   // `$1`, etc. inside JSON/README content (e.g. shell `$` snippets) and corrupt it.
   const html = template
     .replace("<!--{{VENDOR}}-->", () => vendor)
+    .replace("<!--{{LAYERS}}-->", () => `<script>\n${readFileSync(LAYERS, "utf8")}\n</script>`)
     .replace("/*{{DATA}}*/ null", () => "/*{{DATA}}*/ " + jsSafe(JSON.stringify(map)))
     .replace('/*{{README}}*/ ""', () => '/*{{README}}*/ ' + jsSafe(JSON.stringify(opts.readme ?? "")));
 
