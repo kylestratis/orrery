@@ -60,7 +60,7 @@
 
 <div id="hud" class="panel">
   <h1>codemap · <span id="root"></span></h1>
-  <div id="crumb">structure view — <kbd>WASD</kbd>/<kbd>QE</kbd> to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in</div>
+  <div id="crumb">structure view — <kbd>WASD</kbd>/<kbd>QE</kbd> to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in · double-click a file to open it</div>
   <input id="search" placeholder="search module / class…" autocomplete="off" />
   <div style="display:flex; gap:6px; margin-bottom:8px;">
     <button id="collapse-all">▣ collapse all</button>
@@ -326,7 +326,23 @@ const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('gr
   .linkDirectionalArrowRelPos(1)
   .linkDirectionalArrowColor(linkColorAcc)
   .enableNodeDrag(false)            // drags should orbit, not move nodes
-  .onNodeClick(node => drillTo(node.id));
+  .onNodeHover(n => {
+    document.getElementById('graph').style.cursor =
+      n && n.kind === 'module' && classCount.get(n.id) ? 'pointer' : null;
+  })
+  .onNodeClick((() => {
+    let last = { id: null, t: 0 };
+    return node => {
+      const now = Date.now();
+      const dbl = node.id === last.id && now - last.t < 400;
+      last = { id: node.id, t: now };
+      // No native dblclick in 3d-force-graph: first click drills exactly as
+      // before (single-click behavior unchanged, zero delay); a second click on
+      // the same node inside the window is the expand/collapse gesture.
+      if (dbl && node.kind === 'module') { toggleFile(node.id); return; }
+      drillTo(node.id);
+    };
+  })());
 window.Graph = Graph;        // exposed for debugging / external drill-in
 
 // Re-apply visual accessors so a state change repaints without re-running layout.
@@ -350,6 +366,13 @@ function flyToNode(id) {
 function applyFocus() { computeHighlight(); repaint(); updateCrumb(); updateDetail(); }
 
 function drillTo(id) {
+  const n = nodeById.get(id);
+  // A class inside a collapsed file isn't on the frontier — open its file
+  // first so the target exists in the scene before we focus and fly to it.
+  if (n && n.kind === 'class' && !expanded.has(n.module)) {
+    expanded.add(n.module);
+    applyZoom();
+  }
   if (focus !== id) { history.push(focus); focus = id; }
   applyFocus();
   flyToNode(id);
@@ -367,10 +390,18 @@ document.getElementById('reset').onclick = reset;
 document.getElementById('collapse-all').onclick = () => { expanded.clear(); applyZoom(); };
 document.getElementById('expand-all').onclick = () => { for (const id of MODULE_IDS) expanded.add(id); applyZoom(); };
 
+// Toggle a single file's classes. Files without classes have nothing to
+// open — the gesture is a no-op for them.
+function toggleFile(moduleId) {
+  if (!classCount.get(moduleId)) return;
+  if (expanded.has(moduleId)) expanded.delete(moduleId); else expanded.add(moduleId);
+  applyZoom();
+}
+
 function updateCrumb() {
   const c = document.getElementById('crumb');
   if (!focus) { c.textContent =
-    'structure view — WASD/QE to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in'; return; }
+    'structure view — WASD/QE to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in · double-click a file to open it'; return; }
   const n = nodeById.get(focus);
   c.innerHTML = `<b>${n.kind}</b> · ${focus}`;
 }
