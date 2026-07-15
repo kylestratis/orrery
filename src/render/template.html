@@ -62,6 +62,11 @@
   <h1>codemap · <span id="root"></span></h1>
   <div id="crumb">structure view — <kbd>WASD</kbd>/<kbd>QE</kbd> to fly · scroll to zoom · drag to orbit · right-drag to pan · click a node to drill in</div>
   <input id="search" placeholder="search module / class…" autocomplete="off" />
+  <div style="display:flex; gap:6px; margin-bottom:8px;">
+    <button id="collapse-all">▣ collapse all</button>
+    <button id="expand-all">▤ expand all</button>
+  </div>
+  <div id="zoom-state" style="color:#8aa0c0; font-size:11px; margin-bottom:6px;"></div>
   <div class="toggles" id="toggles"></div>
   <div style="display:flex; gap:6px;">
     <button id="reset">⟲ Reset view</button>
@@ -107,7 +112,10 @@ const NODE_COLORS = {
   block: '#8892a6', block: '#8892a6', block: '#8892a6',
   block: '#4cc9f0', block: '#8892a6', block: '#f78c6b',
 };
-const KIND_COLORS = { import: '#3a4a63', uses: '#e8923c', registers: '#4cc9f0' };
+const KIND_COLORS = { import: '#3a4a63', uses: '#e8923c', registers: '#4cc9f0', contains: '#2c3547' };
+// Lifted edges (endpoints promoted above their native level) keep their kind's
+// hue but darker, so class-level signal reads distinctly at file scale.
+const LIFTED_TINT = { uses: '#b5701f', registers: '#2e8aa8' };
 
 function colorFor(n) {
   if (n.role === 'base') return '#ffffff';            // ABCs: white
@@ -143,9 +151,71 @@ const history = [];
 let highlightNodes = new Set();    // node ids kept bright when focused
 let highlightLinks = new Set();    // linkId()s kept bright when focused
 
-// Render provider -> consumer so the arrowhead points at the dependent:
-// arrow IN to a node = "imports from"; arrow OUT = "exported to".
-const ALL_LINKS = DATA.edges.map(e => ({ source: e.target, target: e.source, kind: e.kind }));
+// ---- containment zoom (engine: layers.js, inlined) ----
+const MODULE_IDS = DATA.nodes.filter(n => n.kind === 'module').map(n => n.id);
+const classCount = new Map();
+for (const n of DATA.nodes)
+  if (n.kind === 'class') classCount.set(n.module, (classCount.get(n.module) || 0) + 1);
+const expanded = new Set();        // module ids whose classes are visible; empty = collapsed
+
+// Node objects persist across graphData swaps so the force layout keeps
+// positions for nodes that survive a zoom change (matched by id).
+const graphNodeById = new Map();
+function graphNode(n) {
+  let g = graphNodeById.get(n.id);
+  if (!g) {
+    g = { ...n };
+    if (n.kind === 'class') {
+      // seed new classes near their file so they fan out from it, not from origin
+      const m = graphNodeById.get(n.module);
+      if (m && m.x != null) {
+        g.x = m.x + (Math.random() - 0.5) * 14;
+        g.y = m.y + (Math.random() - 0.5) * 14;
+        g.z = m.z + (Math.random() - 0.5) * 14;
+      }
+    }
+    graphNodeById.set(n.id, g);
+  }
+  return g;
+}
+
+let displayLinks = [];             // links currently rendered (render direction)
+let settleTimer = null;
+
+// Recompute the visible frontier and swap it in. Persisting nodes are pinned
+// (fx/fy/fz) through the re-layout and released after a settle window so
+// expand/collapse reads as local change, not a full re-shuffle.
+function applyZoom() {
+  const dg = buildDisplayGraph(DATA.nodes, DATA.edges, expanded);
+  const prevIds = new Set(Graph.graphData().nodes.map(n => n.id));
+  const nodes = dg.nodes.map(graphNode);
+  // Real edges render provider -> consumer so the arrowhead points at the
+  // dependent (same convention the static ALL_LINKS used); `contains` links
+  // are structural (file -> class) and get no arrow.
+  displayLinks = dg.links.map(l => l.kind === 'contains'
+    ? { source: l.source, target: l.target, kind: l.kind, lifted: false }
+    : { source: l.target, target: l.source, kind: l.kind, lifted: !!l.lifted });
+  for (const n of nodes)
+    if (prevIds.has(n.id) && n.x != null) { n.fx = n.x; n.fy = n.y; n.fz = n.z; }
+  Graph.graphData({ nodes, links: displayLinks });
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(() => {
+    for (const n of Graph.graphData().nodes) { n.fx = n.fy = n.fz = undefined; }
+  }, 1500);
+  // updateLabels only touches rendered nodes, so explicitly hide labels of
+  // nodes that just left the frontier.
+  const visible = new Set(nodes.map(n => n.id));
+  for (const [id, el] of labelEls) if (!visible.has(id)) el.style.display = 'none';
+  computeHighlight(); repaint(); updateZoomCaption();
+}
+
+function updateZoomCaption() {
+  const el = document.getElementById('zoom-state');
+  el.textContent = expanded.size === 0 ? 'zoom: files (collapsed)'
+    : expanded.size >= MODULE_IDS.length ? 'zoom: classes (all files expanded)'
+    : `zoom: mixed (${expanded.size} file${expanded.size === 1 ? '' : 's'} open)`;
+}
+
 const endId = x => (typeof x === 'object' ? x.id : x);
 const linkId = l => `${endId(l.source)}|${endId(l.target)}|${l.kind}`;
 
@@ -175,8 +245,9 @@ function computeHighlight() {
   highlightLinks = new Set();
   if (!focus) return;
   highlightNodes = neighborhood(focus);
-  for (const l of ALL_LINKS)
-    if ((endId(l.source) === focus || endId(l.target) === focus) && enabled[l.kind])
+  for (const l of displayLinks)
+    if ((endId(l.source) === focus || endId(l.target) === focus) &&
+        (l.kind === 'contains' || enabled[l.kind]))
       highlightLinks.add(linkId(l));
 }
 
@@ -192,10 +263,14 @@ function linkColorAcc(l) {
     return (l.kind === 'import' && s && t && s.cycle != null && s.cycle === t.cycle)
       ? CYCLE_COLOR : DIM_LINK;
   }
-  return (focus && !highlightLinks.has(linkId(l))) ? DIM_LINK : KIND_COLORS[l.kind];
+  if (focus && !highlightLinks.has(linkId(l))) return DIM_LINK;
+  if (l.lifted) return LIFTED_TINT[l.kind] || KIND_COLORS[l.kind];
+  return KIND_COLORS[l.kind];
 }
 function linkWidthAcc(l) {
   if (focus && highlightLinks.has(linkId(l))) return 2.4;
+  if (l.kind === 'contains') return 0.5;
+  if (l.lifted) return 1.8;
   return l.kind === 'import' ? 0.5 : 1.2;
 }
 
@@ -235,7 +310,7 @@ function updateLabels() {
   }
 }
 
-// ---- 3d-force-graph (full graph rendered once; focus only dims/highlights) ----
+// ---- 3d-force-graph (renders the visible containment frontier; see applyZoom) ----
 const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('graph'))
   .backgroundColor('#0b0e14')
   .nodeRelSize(4)
@@ -244,22 +319,21 @@ const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('gr
   .nodeOpacity(0.92)
   .nodeLabel(n => `${shortName(n)} · ${n.kind}${n.block ? ' · ' + n.block : ''}`)
   .linkColor(linkColorAcc)
-  .linkVisibility(l => enabled[l.kind])
+  .linkVisibility(l => l.kind === 'contains' || enabled[l.kind])
   .linkWidth(linkWidthAcc)
   .linkOpacity(0.6)
-  .linkDirectionalArrowLength(l => (l.kind === 'import' ? 2.5 : 3.2))
+  .linkDirectionalArrowLength(l => (l.kind === 'contains' ? 0 : l.kind === 'import' ? 2.5 : 3.2))
   .linkDirectionalArrowRelPos(1)
   .linkDirectionalArrowColor(linkColorAcc)
   .enableNodeDrag(false)            // drags should orbit, not move nodes
-  .onNodeClick(node => drillTo(node.id))
-  .graphData({ nodes: DATA.nodes.map(n => ({ ...n })), links: ALL_LINKS });
+  .onNodeClick(node => drillTo(node.id));
 window.Graph = Graph;        // exposed for debugging / external drill-in
 
 // Re-apply visual accessors so a state change repaints without re-running layout.
 function repaint() {
   Graph.nodeColor(nodeColorAcc)
        .linkColor(linkColorAcc)
-       .linkVisibility(l => enabled[l.kind])
+       .linkVisibility(l => l.kind === 'contains' || enabled[l.kind])
        .linkWidth(linkWidthAcc)
        .linkDirectionalArrowColor(linkColorAcc);
 }
@@ -290,6 +364,8 @@ function reset() { history.length = 0; focus = null; applyFocus(); Graph.zoomToF
 
 document.getElementById('back').onclick = back;
 document.getElementById('reset').onclick = reset;
+document.getElementById('collapse-all').onclick = () => { expanded.clear(); applyZoom(); };
+document.getElementById('expand-all').onclick = () => { for (const id of MODULE_IDS) expanded.add(id); applyZoom(); };
 
 function updateCrumb() {
   const c = document.getElementById('crumb');
@@ -360,7 +436,8 @@ const legend = document.getElementById('legend');
 legend.innerHTML = Object.entries(NODE_COLORS)
   .map(([b, c]) => `<span><span class="sw" style="background:${c}"></span> ${b}</span>`).join('')
   + `<span><span class="sw" style="background:#fff"></span> class</span>`
-  + `<span>▶ entry · ◦ public · ●size = centrality</span>`;
+  + `<span>▶ entry · ◦ public · ●size = centrality</span>`
+  + `<span><span class="sw" style="background:${LIFTED_TINT.uses}"></span> uses (lifted)</span>`;
 
 // "Start here" — entry points (▶) and public API (◦), clickable to drill in.
 const startEl = document.getElementById('starthere');
@@ -420,6 +497,7 @@ function flyTick() {
 }
 
 buildLabels();
+applyZoom();                       // initial frontier: collapsed (files)
 updateCrumb();
 setTimeout(() => { if (!focus) Graph.zoomToFit(700, 60); }, 1500);
 flyTick();
