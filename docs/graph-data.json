@@ -593,6 +593,116 @@
       "created_at": "2026-07-08T22:29:03.497814-04:00",
       "updated_at": "2026-07-08T22:29:03.497814-04:00",
       "metadata_json": "{\"branch\":\"main\",\"confidence\":95}"
+    },
+    {
+      "id": 55,
+      "change_id": "3d7879c6-1bad-4f61-bcce-4264f5e683ee",
+      "node_type": "goal",
+      "title": "Execute: renderer containment zoom / layer views (render-layers)",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-08T22:58:08.896243-04:00",
+      "updated_at": "2026-07-08T22:58:08.896243-04:00",
+      "metadata_json": "{\"branch\":\"main\",\"confidence\":90}"
+    },
+    {
+      "id": 56,
+      "change_id": "197b45d7-3d8f-4dcb-a209-b657268ba86e",
+      "node_type": "action",
+      "title": "Starting Phase 1: pure containment-zoom engine layers.js + unit tests",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T15:43:10.377700-04:00",
+      "updated_at": "2026-07-15T15:43:10.377700-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"confidence\":90}"
+    },
+    {
+      "id": 57,
+      "change_id": "d2e54fb5-015e-477e-9f47-1efedb820509",
+      "node_type": "outcome",
+      "title": "Phase 1 complete: layers.js engine + tests green",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T15:45:27.956181-04:00",
+      "updated_at": "2026-07-15T15:45:27.956181-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"4ebb4d0\",\"confidence\":95}"
+    },
+    {
+      "id": 58,
+      "change_id": "dfdc68ad-7580-4b20-8907-6ccfcb3ed0c7",
+      "node_type": "decision",
+      "title": "Phase 1 review fixes: added layers.d.ts (typed declarations for UMD-lite engine) and tightened expanded to Set<string> because tests import the .js module under strict tsc",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T15:57:09.662780-04:00",
+      "updated_at": "2026-07-15T15:57:09.662780-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"eeb2d1a\",\"confidence\":85}"
+    },
+    {
+      "id": 59,
+      "change_id": "82d6e575-d8ec-4008-8f7e-1b446f2df218",
+      "node_type": "action",
+      "title": "Starting Phase 2: render-pipeline injection + global zoom control",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T15:57:10.537840-04:00",
+      "updated_at": "2026-07-15T15:57:10.537840-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"confidence\":90}"
+    },
+    {
+      "id": 60,
+      "change_id": "02f05d48-a22d-4a4c-953d-33e3790e40ce",
+      "node_type": "outcome",
+      "title": "Phase 2 complete: containment zoom wired into HTML, collapsed default; review zero issues + 10/10 automated smoke checks",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T16:06:22.403047-04:00",
+      "updated_at": "2026-07-15T16:06:22.403047-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"10f6a64\",\"confidence\":90}"
+    },
+    {
+      "id": 61,
+      "change_id": "7e297808-1ac8-4e27-bfcf-abe15deece43",
+      "node_type": "action",
+      "title": "Starting Phase 3: per-file expand gesture + auto-expand-on-select",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T16:06:29.675464-04:00",
+      "updated_at": "2026-07-15T16:06:29.675464-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"confidence\":90}"
+    },
+    {
+      "id": 62,
+      "change_id": "556c23dd-1164-45a9-a013-bd1cef445d4e",
+      "node_type": "outcome",
+      "title": "Phase 3 complete: per-file double-click expand + auto-expand-on-select; review zero issues + automated AC6 smoke pass",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T16:13:21.822036-04:00",
+      "updated_at": "2026-07-15T16:13:21.822036-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"4a78459\",\"confidence\":90}"
+    },
+    {
+      "id": 63,
+      "change_id": "9999563a-b125-4a89-a351-b5ed0046d9ad",
+      "node_type": "outcome",
+      "title": "Implementation complete: render-layers feature done (3 phases, zero outstanding review issues, coverage PASS, human test plan written)",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T16:22:37.755132-04:00",
+      "updated_at": "2026-07-15T16:22:37.755132-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"63c4771\",\"confidence\":95}"
+    },
+    {
+      "id": 64,
+      "change_id": "ae533733-5018-4a1c-a5cc-cb09eae8ef6b",
+      "node_type": "outcome",
+      "title": "Verified: 33 tests pass + tsc clean + build green, verification review approved; pre-existing IP leak in beads export found and redacted at source",
+      "description": null,
+      "status": "pending",
+      "created_at": "2026-07-15T22:52:42.661535-04:00",
+      "updated_at": "2026-07-15T22:52:42.661535-04:00",
+      "metadata_json": "{\"branch\":\"render-layers\",\"commit\":\"62f0846\",\"confidence\":95}"
     }
   ],
   "edges": [
@@ -1134,6 +1244,105 @@
       "weight": 1.0,
       "rationale": "Decisions realized in plan",
       "created_at": "2026-07-08T22:29:03.510901-04:00"
+    },
+    {
+      "id": 50,
+      "from_node_id": 55,
+      "to_node_id": 56,
+      "from_change_id": "3d7879c6-1bad-4f61-bcce-4264f5e683ee",
+      "to_change_id": "197b45d7-3d8f-4dcb-a209-b657268ba86e",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 1 execution under the render-layers goal",
+      "created_at": "2026-07-15T15:43:17.452528-04:00"
+    },
+    {
+      "id": 51,
+      "from_node_id": 56,
+      "to_node_id": 57,
+      "from_change_id": "197b45d7-3d8f-4dcb-a209-b657268ba86e",
+      "to_change_id": "d2e54fb5-015e-477e-9f47-1efedb820509",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Implementation complete",
+      "created_at": "2026-07-15T15:45:37.693478-04:00"
+    },
+    {
+      "id": 52,
+      "from_node_id": 56,
+      "to_node_id": 58,
+      "from_change_id": "197b45d7-3d8f-4dcb-a209-b657268ba86e",
+      "to_change_id": "dfdc68ad-7580-4b20-8907-6ccfcb3ed0c7",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Review cycle decisions during Phase 1",
+      "created_at": "2026-07-15T15:57:09.670699-04:00"
+    },
+    {
+      "id": 53,
+      "from_node_id": 55,
+      "to_node_id": 59,
+      "from_change_id": "3d7879c6-1bad-4f61-bcce-4264f5e683ee",
+      "to_change_id": "82d6e575-d8ec-4008-8f7e-1b446f2df218",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 2 execution under the render-layers goal",
+      "created_at": "2026-07-15T15:57:16.012996-04:00"
+    },
+    {
+      "id": 54,
+      "from_node_id": 59,
+      "to_node_id": 60,
+      "from_change_id": "82d6e575-d8ec-4008-8f7e-1b446f2df218",
+      "to_change_id": "02f05d48-a22d-4a4c-953d-33e3790e40ce",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 2 outcome",
+      "created_at": "2026-07-15T16:06:29.164280-04:00"
+    },
+    {
+      "id": 55,
+      "from_node_id": 55,
+      "to_node_id": 61,
+      "from_change_id": "3d7879c6-1bad-4f61-bcce-4264f5e683ee",
+      "to_change_id": "7e297808-1ac8-4e27-bfcf-abe15deece43",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 3 execution under the render-layers goal",
+      "created_at": "2026-07-15T16:06:29.681923-04:00"
+    },
+    {
+      "id": 56,
+      "from_node_id": 61,
+      "to_node_id": 62,
+      "from_change_id": "7e297808-1ac8-4e27-bfcf-abe15deece43",
+      "to_change_id": "556c23dd-1164-45a9-a013-bd1cef445d4e",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Phase 3 outcome",
+      "created_at": "2026-07-15T16:13:21.829466-04:00"
+    },
+    {
+      "id": 57,
+      "from_node_id": 55,
+      "to_node_id": 63,
+      "from_change_id": "3d7879c6-1bad-4f61-bcce-4264f5e683ee",
+      "to_change_id": "9999563a-b125-4a89-a351-b5ed0046d9ad",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Final outcome of render-layers execution",
+      "created_at": "2026-07-15T16:22:37.762603-04:00"
+    },
+    {
+      "id": 58,
+      "from_node_id": 63,
+      "to_node_id": 64,
+      "from_change_id": "9999563a-b125-4a89-a351-b5ed0046d9ad",
+      "to_change_id": "ae533733-5018-4a1c-a5cc-cb09eae8ef6b",
+      "edge_type": "leads_to",
+      "weight": 1.0,
+      "rationale": "Verification outcome follows implementation completion",
+      "created_at": "2026-07-15T22:52:42.668482-04:00"
     }
   ]
 }
