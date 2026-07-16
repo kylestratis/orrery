@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "hash": "62f0846d352cf1a5fb61147bc249a395efd3a9af",
+    "short_hash": "62f0846",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T22:52:41-04:00",
+    "message": "chore(beads): redact reference-repo path from orrery-2uv description (t1n follow-up)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "63c477148e44c1dcc01892e375e95360846c49bf",
+    "short_hash": "63c4771",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T16:22:10-04:00",
+    "message": "docs: add test plan for render-layers containment zoom\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+    "files_changed": 1
+  },
+  {
+    "hash": "4a7845979184f3058ac1f84b96e68d4cdafde8bc",
+    "short_hash": "4a78459",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T16:08:02-04:00",
+    "message": "feat(render): per-file double-click expand + auto-expand-on-select (orrery-c6y)",
+    "files_changed": 2
+  },
+  {
+    "hash": "10f6a64363ccaa3c07bc2a57c671a5dff073f865",
+    "short_hash": "10f6a64",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T16:00:44-04:00",
+    "message": "feat(render): global containment-zoom control, collapsed default (orrery-k97)",
+    "files_changed": 1
+  },
+  {
+    "hash": "eeb2d1a44cbd323864067b1a5daa5d6c64751184",
+    "short_hash": "eeb2d1a",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T15:56:11-04:00",
+    "message": "fix(render): tighten expanded param to Set<string> in layers declarations (orrery-318)\n\nCo-Authored-By: Claude Fable 5 <noreply@anthropic.com>",
+    "files_changed": 2
+  },
+  {
+    "hash": "4ebb4d02974bbb4e5bab528d6faaf176551537a2",
+    "short_hash": "4ebb4d0",
+    "author": "Kyle Stratis",
+    "date": "2026-07-15T15:45:17-04:00",
+    "message": "feat(render): containment-zoom engine with edge lifting (orrery-318)",
+    "files_changed": 3
+  }
+]
