@@ -21,7 +21,7 @@ The renderer becomes a **containment zoom** over the tree `package ⊃ module(fi
 - A distinct gesture (not the existing drill/focus single-click) toggles a single file in `expanded`, revealing/hiding just that file's classes + their `uses` edges.
 - Selecting a class that lives in a collapsed file (via search or drill) **auto-expands** its file so the target is visible.
 
-**Explicitly out of scope:** any extraction changes; generalizing the hardcoded `BLOCK_COLORS` / `#about` template assumptions (future issue); function-level zoom (`orrery-487`); collapsing files into packages (only the file↔class level collapses).
+**Explicitly out of scope:** any extraction changes; generalizing the hardcoded node-color / `#about` template assumptions (future issue); function-level zoom (`orrery-487`); collapsing files into packages (only the file↔class level collapses).
 
 **Success looks like:** open the HTML → files as dots + `import` edges + lifted file→file `uses` edges; `expand all` → every file opens to its classes with class-level `uses` edges; `collapse all` → back to files; (deliverable 2) a per-file gesture opens/closes one file, and searching a class auto-expands its file.
 
