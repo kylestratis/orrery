@@ -85,7 +85,7 @@
 
 <div id="about" class="panel">
   Static-analysis map (intuition, not proof): dynamic dispatch via getattr/metaclasses
-  is invisible; <b>registers</b> edges recover the most important registry wiring.
+  is invisible; <b>registers</b> edges recover framework registration that static imports miss.
   Arrows point at the dependent — <b>arrow in</b> = imports from, <b>arrow out</b> = exported to.
   Labels show on hover &amp; in the detail panel.
 </div>
@@ -108,25 +108,20 @@ document.getElementById('readme-toggle').onclick = () => {
 
 // ---- indices ----
 const nodeById = new Map(DATA.nodes.map(n => [n.id, n]));
-const NODE_COLORS = {
-  block: '#8892a6', block: '#8892a6', block: '#8892a6',
-  block: '#4cc9f0', block: '#8892a6', block: '#f78c6b',
-};
 const KIND_COLORS = { import: '#3a4a63', uses: '#e8923c', registers: '#4cc9f0', contains: '#2c3547' };
 // Lifted edges (endpoints promoted above their native level) keep their kind's
 // hue but darker, so class-level signal reads distinctly at file scale.
 const LIFTED_TINT = { uses: '#b5701f', registers: '#2e8aa8' };
 
+// Nodes are colored by structural kind (language-agnostic, from the CodeMap).
+const NODE_COLORS = { package: '#4a5a78', module: '#7d8ba6', class: '#8a7db8' };
 function colorFor(n) {
-  if (n.role === 'base') return '#ffffff';            // ABCs: white
-  if (n.block) return NODE_COLORS[n.block] || '#9aa7bd';
-  if (n.kind === 'package') return '#4a5a78';         // structural: muted blue-grey
-  return '#7d8ba6';                                   // plain modules: lighter grey
+  return NODE_COLORS[n.kind] || '#7d8ba6';
 }
 function sizeFor(n) {
   const base = n.kind === 'package' ? 9            // packages: large
     : n.kind === 'module' ? 3.2                    // modules: medium
-    : (n.role === 'base' ? 2.6 : 1.6);             // classes small (base a touch larger)
+    : 1.6;                                         // classes: small
   return base * (1 + 1.6 * (n.score || 0));        // grow by centrality (core abstractions pop)
 }
 const DIM_NODE = '#161b26';   // near-background colour for de-emphasised nodes
@@ -317,7 +312,7 @@ const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('gr
   .nodeVal(sizeFor)
   .nodeColor(nodeColorAcc)
   .nodeOpacity(0.92)
-  .nodeLabel(n => `${shortName(n)} · ${n.kind}${n.block ? ' · ' + n.block : ''}`)
+  .nodeLabel(n => `${shortName(n)} · ${n.kind}`)
   .linkColor(linkColorAcc)
   .linkVisibility(l => l.kind === 'contains' || enabled[l.kind])
   .linkWidth(linkWidthAcc)
@@ -422,7 +417,7 @@ function listFor(focusId) {
     groups.push(['uses', touching(focusId, 'uses').filter(e => e.source === focusId).map(e => e.target)]);
     groups.push(['registers',
       touching(focusId, 'registers').filter(e => e.source === focusId).map(e => e.target)]);
-    groups.push(['implementations',
+    groups.push(['registered by',
       touching(focusId, 'registers').filter(e => e.target === focusId).map(e => e.source)]);
   } else {
     groups.push(['contains',
@@ -439,7 +434,7 @@ function updateDetail() {
   const n = nodeById.get(focus);
   d.style.display = 'block';
   d.innerHTML = `<h2>${shortName(n)}</h2>`
-    + `<div class="meta">${n.kind}${n.block ? ' · ' + n.block : ''}${n.role ? ' · ' + n.role : ''}`
+    + `<div class="meta">${n.kind}`
     + `<br>${focus}</div>` + listFor(focus);
   d.querySelectorAll('li').forEach(li =>
     li.onclick = () => { const id = li.getAttribute('data-id'); if (nodeById.has(id)) drillTo(id); });
@@ -465,8 +460,7 @@ document.getElementById('tg-cycles').onchange = e => { showCycles = e.target.che
 
 const legend = document.getElementById('legend');
 legend.innerHTML = Object.entries(NODE_COLORS)
-  .map(([b, c]) => `<span><span class="sw" style="background:${c}"></span> ${b}</span>`).join('')
-  + `<span><span class="sw" style="background:#fff"></span> class</span>`
+  .map(([k, c]) => `<span><span class="sw" style="background:${c}"></span> ${k}</span>`).join('')
   + `<span>▶ entry · ◦ public · ●size = centrality</span>`
   + `<span><span class="sw" style="background:${LIFTED_TINT.uses}"></span> uses (lifted)</span>`;
 
